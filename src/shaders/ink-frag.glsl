@@ -76,6 +76,44 @@ float interpolate(float v1, float v2, float v3, float v4, float v5, float v6, fl
 
 vec3 fade(vec3 t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
 
+// 2D Perlin noise (fast) adapted from https://www.shadertoy.com/view/XdcXzH
+// Uses cosine interpolation and a sine-based hash. Good visual quality and cheaper than 3D.
+#define _PerlinPrecision 8.0
+#define _PerlinOctaves 8.0
+#define _PerlinSeed 0.0
+
+float rnd2(vec2 xy) {
+  return fract(sin(dot(xy, vec2(12.9898 - _PerlinSeed, 78.233 + _PerlinSeed))) * (43758.5453 + _PerlinSeed));
+}
+
+float inter2(float a, float b, float x) {
+  float f = (1.0 - cos(x * 3.1415927)) * 0.5;
+  return a * (1.0 - f) + b * f;
+}
+
+float perlin2D(vec2 uv) {
+  float a,b,c,d, coef1, coef2, t, p;
+  t = _PerlinPrecision;
+  p = 0.0;
+  for (float i = 0.0; i < _PerlinOctaves; i++) {
+    a = rnd2(vec2(floor(t*uv.x)/t, floor(t*uv.y)/t));
+    b = rnd2(vec2(ceil(t*uv.x)/t,  floor(t*uv.y)/t));
+    c = rnd2(vec2(floor(t*uv.x)/t, ceil(t*uv.y)/t));
+    d = rnd2(vec2(ceil(t*uv.x)/t,  ceil(t*uv.y)/t));
+
+    if ((ceil(t*uv.x)/t) == 1.0) {
+      b = rnd2(vec2(0.0, floor(t*uv.y)/t));
+      d = rnd2(vec2(0.0, ceil(t*uv.y)/t));
+    }
+
+    coef1 = fract(t * uv.x);
+    coef2 = fract(t * uv.y);
+    p += inter2(inter2(a, b, coef1), inter2(c, d, coef1), coef2) * (1.0 / pow(2.0, (i + 0.6)));
+    t *= 2.0;
+  }
+  return p;
+}
+
 float perlinNoise(vec3 position, uint seed) {
   vec3 fP = floor(position);
   vec3 fr = position - fP;
@@ -116,7 +154,8 @@ void main() {
     for (float i = 0.; i < layerNum; ++i) {
       ps *= 1.6;
       float radius = (5.0 + u_SplashScaleVar * random1fr(seed));
-      float h = noiseScale * perlinNoise(vec3(ps.x, ps.y, 1.0), uint(23)) + r * radius;
+      // Use cheaper 2D Perlin for splash threshold
+      float h = noiseScale * perlin2D(ps) + r * radius;
       if (h < 0.09) {
         v += 1. / layerNum;
       }
