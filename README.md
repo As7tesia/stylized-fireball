@@ -1,6 +1,6 @@
 # Ink Fireball
 Project by Yichen Huang
-[Live Demo Site](https://as7tesia.github.io/hw01-fireball/)
+[Live Demo Site](https://as7tesia.github.io/stylized-fireball/)
 
 # Description
 ## Fireball (vert + frag) shader 
