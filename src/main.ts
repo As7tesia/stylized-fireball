@@ -20,9 +20,9 @@ const controls = {
   outerExponent: 2.0,
   dispGain: 1.0,
   // shape: 1,
-  layerNum: 10.0,
-  splashCount: 40.0,
-  splashScaleVar: 2.0
+  layerNum: 6.0,
+  splashCount: 15.0,
+  splashScaleVar: 3.0
 };
 
 let icosphere: Icosphere;
@@ -59,9 +59,9 @@ function resetScene() {
   controls.innerExponent = 5.25;
   controls.outerExponent = 2.0;
   controls.dispGain = 1.0;
-  controls.layerNum = 10.0;
-  controls.splashCount = 40.0;
-  controls.splashScaleVar = 2.0;
+  controls.layerNum = 6.0;
+  controls.splashCount = 15.0;
+  controls.splashScaleVar = 3.0;
   prevTesselations = 7;
 
   palette.color1 = [255, 234, 221, 1];
