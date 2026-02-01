@@ -141,21 +141,21 @@ uint hash(uvec3 x, uint seed){
     const uint m = 0x5bd1e995U;
     uint hash = seed;
     // process first vector element
-    uint k = x.x; 
+    uint k = x.x;
     k *= m;
     k ^= k >> 24;
     k *= m;
     hash *= m;
     hash ^= k;
     // process second vector element
-    k = x.y; 
+    k = x.y;
     k *= m;
     k ^= k >> 24;
     k *= m;
     hash *= m;
     hash ^= k;
     // process third vector element
-    k = x.z; 
+    k = x.z;
     k *= m;
     k ^= k >> 24;
     k *= m;
@@ -166,6 +166,16 @@ uint hash(uvec3 x, uint seed){
     hash *= m;
     hash ^= hash >> 15;
     return hash;
+}
+
+// 2D hash for 2D Perlin noise (optimized for ink splashes)
+uint hash(uvec2 x, uint seed) {
+    const uint m = 0x5bd1e995U;
+    uint h = seed;
+    uint k = x.x; k *= m; k ^= k >> 24; k *= m; h *= m; h ^= k;
+    k = x.y; k *= m; k ^= k >> 24; k *= m; h *= m; h ^= k;
+    h ^= h >> 13; h *= m; h ^= h >> 15;
+    return h;
 }
 
 
@@ -203,6 +213,16 @@ vec3 gradientDirection(uint hash) {
         return vec3(0, -1, 1);
     case 15:
         return vec3(0, -1, -1);
+    }
+}
+
+// 2D gradient direction for 2D Perlin noise
+vec2 gradientDirection2D(uint hash) {
+    switch (int(hash) & 3) {
+        case 0: return vec2(1, 1);
+        case 1: return vec2(-1, 1);
+        case 2: return vec2(1, -1);
+        case 3: return vec2(-1, -1);
     }
 }
 
@@ -248,6 +268,24 @@ float perlinNoise(vec3 position, int frequency, int octaveCount, float persisten
     return value;
 }
 
+// 2D Perlin noise - optimized for ink splashes (was using 3D with constant Z)
+vec2 fade2D(vec2 t) {
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+float perlinNoise2D(vec2 position, uint seed) {
+    vec2 floorPos = floor(position);
+    vec2 fractPos = position - floorPos;
+    uvec2 cell = uvec2(floorPos);
+
+    float v1 = dot(gradientDirection2D(hash(cell, seed)), fractPos);
+    float v2 = dot(gradientDirection2D(hash(cell + uvec2(1, 0), seed)), fractPos - vec2(1, 0));
+    float v3 = dot(gradientDirection2D(hash(cell + uvec2(0, 1), seed)), fractPos - vec2(0, 1));
+    float v4 = dot(gradientDirection2D(hash(cell + uvec2(1, 1), seed)), fractPos - vec2(1, 1));
+
+    vec2 t = fade2D(fractPos);
+    return mix(mix(v1, v2, t.x), mix(v3, v4, t.x), t.y);
+}
 
 float expImpulse(float x, float k, float gain) {
   float h = k * x;
@@ -306,7 +344,7 @@ void main() {
         for (float i = 0.; i < layerNum; ++i) {
             ps *= 1.6;
             float radius = (5.0 + u_SplashScaleVar * random1fr(seed));
-            float h = noiseScale*perlinNoise(vec3(ps.x, ps.y, 1.0), 1, 1, 0.5, 2.0, uint(23)) + r * radius;
+            float h = noiseScale * perlinNoise2D(ps, 23u) + r * radius;
             if (h < 0.09) {
                 v += 1./layerNum; 
             }
